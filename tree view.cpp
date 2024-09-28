@@ -430,31 +430,17 @@ Tree_View::Wm_Mouse_Move(UINT, WPARAM, LPARAM lParam, BOOL& handled)
         return 0;
     }
 
-    
-    
-    
-    // Move the drag image to the new location (relative to the client coordinates).
-    
     auto point = POINT{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 
-    ImageList_DragMove(0, point.y);
 
-    
-    
-    
-    // Turn off dragged image so background is refreshed. Note: causes dragged item to flicker somewhat. I don't like this very much.
-    
-    ImageList_DragShowNolock(FALSE);
 
-    
-    
-    
+
     // Perform hit testing in the TreeView control to find the dragged-over item.
-    
+
     auto info = TVHITTESTINFO{};
-    
+
     info.pt = point;
-    
+
     auto item = TreeView_HitTest(m_hWnd, &info);
 
     if (item != My_Drag_Over_Item)
@@ -479,35 +465,45 @@ Tree_View::Wm_Mouse_Move(UINT, WPARAM, LPARAM lParam, BOOL& handled)
         }
     }
 
+    
+    
+    
+    // Move the drag image to the new location (relative to the client coordinates).
+
+    ImageList_DragMove(0, point.y);
 
 
 
-    // We choose the drop target if the user dragged over anywhere on the item.
+
+    // We choose the drop target if the user dragged over anywhere on a new item.
 
     if (info.flags & TVHT_ONITEM ||
         info.flags & TVHT_ONITEMRIGHT ||
         info.flags & TVHT_ONITEMINDENT ||
         info.flags & TVHT_ONITEMBUTTON)
     {
-        My_Drop_Item = item;
+        if (My_Drop_Item != item)
+        {
+            My_Drop_Item = item;
 
-        TreeView_SelectDropTarget(m_hWnd, My_Drop_Item);
+            ImageList_DragShowNolock(FALSE);
+                TreeView_SelectDropTarget(m_hWnd, My_Drop_Item);
+            ImageList_DragShowNolock(TRUE);
+        }
     }
     else
     {
         // Not over any item.
 
-        My_Drop_Item = nullptr;
+        if (My_Drop_Item != nullptr)
+        {
+            My_Drop_Item = nullptr;
 
-        TreeView_SelectDropTarget(m_hWnd, nullptr);
+            ImageList_DragShowNolock(FALSE);
+                TreeView_SelectDropTarget(m_hWnd, nullptr);
+            ImageList_DragShowNolock(TRUE);
+        }
     }
-
-
-
-
-    // Turn on the dragged image.
-
-    ImageList_DragShowNolock(TRUE);
 
     
     
@@ -845,11 +841,15 @@ Tree_View::Wm_Timer(UINT /*message*/, WPARAM wParam, LPARAM, BOOL& handled)
 
         if (My_Initial_Drag_Over_State == 0 && !(state & TVIS_EXPANDED))
         {
-            TreeView_Expand(m_hWnd, My_Drag_Over_Item, TVE_EXPAND);
+            ImageList_DragShowNolock(FALSE);
+                TreeView_Expand(m_hWnd, My_Drag_Over_Item, TVE_EXPAND);
+            ImageList_DragShowNolock(TRUE);
         }
         else if (My_Initial_Drag_Over_State == TVIS_EXPANDED && (state & TVIS_EXPANDED))
         {
-            TreeView_Expand(m_hWnd, My_Drag_Over_Item, TVE_COLLAPSE);
+            ImageList_DragShowNolock(FALSE);
+                TreeView_Expand(m_hWnd, My_Drag_Over_Item, TVE_COLLAPSE);
+            ImageList_DragShowNolock(TRUE);
         }
 
         
